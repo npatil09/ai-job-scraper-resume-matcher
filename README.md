@@ -76,7 +76,7 @@ ai-job-matcher/
 ### 1. Clone the repository
 
 ```bash
-git clone <>
+git clone <github.com/npatil09/ai-job-scraper-resume-matcher>
 ```
 
 ### 2. Navigate to the project folder
