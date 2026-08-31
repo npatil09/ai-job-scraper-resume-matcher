@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Job Scraper & Resume Matcher</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f6f8;
+            color: #222;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            padding: 22px 0;
+            margin-bottom: 35px;
+        }
+
+        header h1 {
+            font-size: 25px;
+            font-weight: 600;
+        }
+
+        header p {
+            color: #666;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .upload-section h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .upload-section p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .upload-box {
+            border: 2px dashed #bbb;
+            border-radius: 7px;
+            padding: 30px;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        input[type="file"] {
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #222;
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #c62828;
+        }
+
+        .success {
+            color: #2e7d32;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .profile {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .profile h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .profile-section {
+            margin-bottom: 20px;
+        }
+
+        .profile-section h3 {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .profile-section p {
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-line;
+            font-size: 14px;
+        }
+
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .skill {
+            background: #eee;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .jobs-header {
+            margin-bottom: 15px;
+        }
+
+        .jobs-header h2 {
+            font-size: 20px;
+        }
+
+        .jobs-header p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .job-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .job-card h3 {
+            font-size: 17px;
+            margin-bottom: 7px;
+        }
+
+        .company {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .location {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .match-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .score {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .match-bar {
+            width: 150px;
+            height: 7px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .match-fill {
+            height: 100%;
+            background: #333;
+        }
+
+        .job-details {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .job-details strong {
+            color: #333;
+        }
+
+        .apply-btn {
+            display: inline-block;
+            text-decoration: none;
+            background: #222;
+            color: white;
+            padding: 9px 15px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .apply-btn:hover {
+            background: #444;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 25px;
+            color: #555;
+        }
+
+        footer {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            padding: 30px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                width: 94%;
+            }
+
+            .upload-section,
+            .profile,
+            .job-card {
+                padding: 18px;
+            }
+
+            .match-row {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="container">
+        <h1>AI Job Scraper & Resume Matcher</h1>
+        <p>Upload your resume to find jobs that match your skills.</p>
+    </div>
+</header>
+
+
+<main class="container">
+
+    <!-- Upload -->
+    <section class="upload-section">
+
+        <h2>Upload Resume</h2>
+
+        <p>
+            Upload your resume in PDF format. The system will extract your
+            profile and find matching jobs.
+        </p>
+
+        <div class="upload-box">
+
+            <input
+                type="file"
+                id="resumeFile"
+                accept=".pdf"
+            >
+
+            <br>
+
+            <button id="uploadBtn" onclick="uploadResume()">
+                Upload & Find Jobs
+            </button>
+
+            <div id="status"></div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Loading -->
+    <div id="loading" class="loading">
+        Processing your resume and finding matching jobs...
+    </div>
+
+
+    <!-- Results -->
+    <section id="results" class="results">
+
+        <!-- Profile -->
+        <div class="profile">
+
+            <h2>Your Profile</h2>
+
+            <div class="profile-section">
+                <h3>Research Interest</h3>
+                <p id="researchInterest"></p>
+            </div>
+
+            <div class="profile-section">
+                <h3>Education</h3>
+                <p id="education"></p>
+            </div>
+
+            <div class="profile-section">
+                <h3>Skills</h3>
+                <div id="skills" class="skills"></div>
+            </div>
+
+        </div>
+
+
+        <!-- Jobs -->
+        <div class="jobs-header">
+
+            <h2>Matching Jobs</h2>
+
+            <p id="jobsCount"></p>
+
+        </div>
+
+        <div id="jobsList"></div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    AI Job Scraper & Resume Matcher
+</footer>
+
+
+<script>
+
+    async function uploadResume() {
+
+        const fileInput = document.getElementById("resumeFile");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const status = document.getElementById("status");
+        const loading = document.getElementById("loading");
+        const results = document.getElementById("results");
+
+        // Check file
+        if (!fileInput.files.length) {
+
+            status.textContent = "Please select a PDF resume.";
+            status.className = "error";
+
+            return;
+        }
+
+        const file = fileInput.files[0];
+
+        // Check PDF
+        if (file.type !== "application/pdf") {
+
+            status.textContent = "Please upload a PDF file.";
+            status.className = "error";
+
+            return;
+        }
+
+
+        // Create form data
+        const formData = new FormData();
+
+        formData.append("file", file);
+
+
+        // UI changes
+        uploadBtn.disabled = true;
+
+        status.textContent = "";
+        loading.style.display = "block";
+        results.style.display = "none";
+
+
+        try {
+
+            /*
+             * IMPORTANT:
+             * Your FastAPI endpoint is:
+             *
+             * POST /upload-resume
+             *
+             * NOT:
+             * /upload_resume
+             */
+
+            const response = await fetch("/upload-resume", {
+
+                method: "POST",
+
+                body: formData
+
+            });
+
+
+            // Check HTTP error
+            if (!response.ok) {
+
+                let errorMessage = "Something went wrong.";
+
+                try {
+
+                    const errorData = await response.json();
+
+                    if (errorData.detail) {
+                        errorMessage = errorData.detail;
+                    }
+
+                } catch (e) {
+                    // Ignore JSON parsing error
+                }
+
+                throw new Error(errorMessage);
+            }
+
+
+            // Convert response to JSON
+            const data = await response.json();
+
+
+            // Display results
+            displayResults(data);
+
+
+            status.textContent = "Resume processed successfully.";
+            status.className = "success";
+
+
+        } catch (error) {
+
+            console.error("Upload error:", error);
+
+            status.textContent = "Error: " + error.message;
+            status.className = "error";
+
+        } finally {
+
+            uploadBtn.disabled = false;
+            loading.style.display = "none";
+
+        }
+
+    }
+
+
+    function displayResults(data) {
+
+        const results = document.getElementById("results");
+
+        const profile = data.profile || {};
+        const jobs = data.matched_jobs || [];
+
+
+        /*
+         * PROFILE
+         */
+
+        document.getElementById("researchInterest").textContent =
+            profile.research_interest || "Not available";
+
+
+        document.getElementById("education").textContent =
+            profile.education || "Not available";
+
+
+        /*
+         * SKILLS
+         */
+
+        const skillsContainer = document.getElementById("skills");
+
+        skillsContainer.innerHTML = "";
+
+
+        const skills = profile.skills || [];
+
+
+        skills.forEach(function(skill) {
+
+            const span = document.createElement("span");
+
+            span.className = "skill";
+
+            span.textContent = skill;
+
+            skillsContainer.appendChild(span);
+
+        });
+
+
+        /*
+         * JOB COUNT
+         */
+
+        document.getElementById("jobsCount").textContent =
+            jobs.length + " matching jobs found";
+
+
+        /*
+         * JOB LIST
+         */
+
+        const jobsList = document.getElementById("jobsList");
+
+        jobsList.innerHTML = "";
+
+
+        if (jobs.length === 0) {
+
+            jobsList.innerHTML =
+                "<p>No matching jobs found.</p>";
+
+        } else {
+
+            jobs.forEach(function(job) {
+
+                const card = document.createElement("div");
+
+                card.className = "job-card";
+
+
+                /*
+                 * Match score
+                 */
+
+                let score = job.match && job.match.score;
+
+                if (score === null || score === undefined) {
+                    score = 0;
+                }
+
+
+                /*
+                 * Location
+                 */
+
+                let location = "Location not specified";
+
+                if (Array.isArray(job.location)) {
+
+                    location = job.location.join(", ");
+
+                } else if (job.location) {
+
+                    location = job.location;
+
+                }
+
+
+                /*
+                 * Matched skills
+                 */
+
+                let matchedSkills = [];
+
+                if (
+                    job.match &&
+                    Array.isArray(job.match.matched_skills)
+                ) {
+
+                    matchedSkills = job.match.matched_skills;
+
+                }
+
+
+                /*
+                 * Missing skills
+                 */
+
+                let missingSkills = [];
+
+                if (
+                    job.match &&
+                    Array.isArray(job.match.missing_skills)
+                ) {
+
+                    missingSkills = job.match.missing_skills;
+
+                }
+
+
+                /*
+                 * Reason
+                 */
+
+                let reason = "";
+
+                if (job.match && job.match.reason) {
+
+                    reason = job.match.reason;
+
+                }
+
+
+                /*
+                 * Application link
+                 */
+
+                let applicationLink = job.application_link || "#";
+
+
+                card.innerHTML = `
+
+                    <h3>${escapeHTML(job.title || "Untitled Job")}</h3>
+
+                    <div class="company">
+                        ${escapeHTML(job.company || "Unknown Company")}
+                    </div>
+
+                    <div class="location">
+                        ${escapeHTML(location)}
+                    </div>
+
+                    <div class="match-row">
+
+                        <span class="score">
+                            Match: ${score}%
+                        </span>
+
+                        <div class="match-bar">
+
+                            <div
+                                class="match-fill"
+                                style="width: ${Math.min(score, 100)}%"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="job-details">
+
+                        ${
+                            matchedSkills.length
+                            ?
+                            `<div>
+                                <strong>Matched skills:</strong>
+                                ${escapeHTML(matchedSkills.join(", "))}
+                            </div>`
+                            :
+                            ""
+                        }
+
+
+                        ${
+                            missingSkills.length
+                            ?
+                            `<div>
+                                <strong>Missing skills:</strong>
+                                ${escapeHTML(missingSkills.join(", "))}
+                            </div>`
+                            :
+                            ""
+                        }
+
+
+                        ${
+                            reason
+                            ?
+                            `<div>
+                                <strong>Why:</strong>
+                                ${escapeHTML(reason)}
+                            </div>`
+                            :
+                            ""
+                        }
+
+                    </div>
+
+
+                    <a
+                        class="apply-btn"
+                        href="${escapeAttribute(applicationLink)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View Job
+                    </a>
+
+                `;
+
+
+                jobsList.appendChild(card);
+
+            });
+
+        }
+
+
+        /*
+         * Show results
+         */
+
+        results.style.display = "block";
+
+
+        /*
+         * Scroll to results
+         */
+
+        results.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    }
+
+
+    /*
+     * Prevent HTML injection
+     */
+
+    function escapeHTML(value) {
+
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    function escapeAttribute(value) {
+
+        return escapeHTML(value);
+
+    }
+
+</script>
+
+</body>
+</html>
